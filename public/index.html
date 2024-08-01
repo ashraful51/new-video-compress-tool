@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Compressor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    form {
+      margin-bottom: 20px;
+    }
+    #status {
+      margin-top: 20px;
+      color: red;
+    }
+    video {
+      max-width: 100%;
+      margin-top: 20px;
+    }
+    #downloadLink {
+      display: none;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Video Compressor</h1>
+  <form id="uploadForm">
+    <input type="file" id="videoFile" name="video" accept="video/*" required>
+    <button type="submit">Compress Video</button>
+  </form>
+  <div id="status"></div>
+  <video id="videoPlayer" controls style="display:none;"></video>
+  <a id="downloadLink" href="#" download>Download Compressed Video</a>
+
+  <script>
+    document.getElementById('uploadForm').addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const fileInput = document.getElementById('videoFile');
+      const statusDiv = document.getElementById('status');
+      const videoPlayer = document.getElementById('videoPlayer');
+      const downloadLink = document.getElementById('downloadLink');
+
+      if (fileInput.files.length === 0) {
+        statusDiv.textContent = 'Please select a video file.';
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('video', fileInput.files[0]);
+
+      statusDiv.textContent = 'Uploading and compressing video...';
+
+      try {
+        const response = await fetch('/compress', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to compress video.');
+        }
+
+        const result = await response.json();
+        statusDiv.textContent = 'Video compressed successfully!';
+
+        videoPlayer.src = result.downloadUrl;
+        videoPlayer.style.display = 'block';
+        downloadLink.href = result.downloadUrl;
+        downloadLink.style.display = 'block';
+      } catch (error) {
+        statusDiv.textContent = error.message;
+      }
+    });
+  </script>
+</body>
+</html>
