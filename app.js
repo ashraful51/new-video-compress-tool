@@ -16,11 +16,6 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 const app = express();
 const port = process.env.PORT || 3000;
 
-console.log('AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? '****' : 'Not Set');
-console.log('AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? '****' : 'Not Set');
-console.log('AWS_REGION:', process.env.AWS_REGION);
-console.log('AWS_BUCKET_NAME:', process.env.AWS_BUCKET_NAME);
-
 const s3Client = new S3Client({
   region: process.env.AWS_REGION,
   credentials: {
