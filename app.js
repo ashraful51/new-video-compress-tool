@@ -34,16 +34,17 @@ app.get('/', (req, res) => {
 
 app.post('/generate-presigned-url', async (req, res) => {
   const { fileName, fileType } = req.body;
+  const newFileName = `${Date.now()}-${fileName}`;
   const params = {
     Bucket: process.env.AWS_BUCKET_NAME,
-    Key: fileName,
+    Key: newFileName,
     ContentType: fileType,
   };
 
   try {
     const command = new PutObjectCommand(params);
     const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    res.json({ uploadUrl });
+    res.json({ uploadUrl, fileName: newFileName });
   } catch (error) {
     console.error('Error generating presigned URL:', error);
     res.status(500).send('Error generating presigned URL');

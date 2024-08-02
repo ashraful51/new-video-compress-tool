@@ -20,7 +20,7 @@
         return;
       }
 
-      const { uploadUrl } = await fetch('/generate-presigned-url', {
+      const { uploadUrl, fileName } = await fetch('/generate-presigned-url', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -44,7 +44,7 @@
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ s3Key: file.name })
+        body: JSON.stringify({ s3Key: fileName })
       });
 
       if (response.ok) {
