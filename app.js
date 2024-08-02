@@ -92,7 +92,8 @@ app.post('/compress', async (req, res) => {
           .output(outputPath)
           .videoCodec('libx264')
           .size('50%')
-          .preset('fast') // Use 'fast' preset for compression
+          .videoBitrate('1000k')
+          .audioBitrate('128k')
           .on('end', () => {
             console.log(`Video compressed to ${outputPath}`);
             resolve();
