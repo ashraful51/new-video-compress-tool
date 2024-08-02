@@ -4,79 +4,147 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Compressor</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #f0f0f0;
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .container {
+      text-align: center;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    input[type="file"] {
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    #progress {
+      margin-top: 10px;
+      height: 25px;
+      width: 100%;
+      background: #e0e0e0;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      width: 0;
+      background: #007bff;
+      transition: width 0.4s ease;
+    }
+    #message {
+      margin-top: 20px;
+    }
+    video {
+      margin-top: 20px;
+      max-width: 100%;
+      display: none;
+    }
+  </style>
 </head>
 <body>
-  <h1>Video Compressor</h1>
-  <input type="file" id="videoInput" accept="video/*">
-  <button onclick="uploadAndCompressVideo()">Compress Video</button>
-  <div id="message"></div>
+  <div class="container">
+    <h1>Video Compressor</h1>
+    <input type="file" id="videoInput" accept="video/*">
+    <button id="compressButton" onclick="uploadAndCompressVideo()">Compress Video</button>
+    <div id="progress">
+      <div id="progress-bar"></div>
+    </div>
+    <div id="message"></div>
+    <video id="videoPlayer" controls></video>
+  </div>
+
   <script>
     async function uploadAndCompressVideo() {
       const fileInput = document.getElementById('videoInput');
       const file = fileInput.files[0];
+      const progressBar = document.getElementById('progress-bar');
+      const compressButton = document.getElementById('compressButton');
+      const messageDiv = document.getElementById('message');
+      const videoPlayer = document.getElementById('videoPlayer');
 
       if (!file) {
         alert('Please select a video file to upload.');
         return;
       }
 
-      console.log('Generating presigned URL');
-      const { uploadUrl, fileName } = await fetch('https://new-video-compress-tool.onrender.com/generate-presigned-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          fileName: file.name,
-          fileType: file.type
-        })
-      }).then(response => {
-        console.log('Presigned URL response:', response);
-        return response.json();
-      }).catch(error => {
-        console.error('Error generating presigned URL:', error);
-        return {};
-      });
+      compressButton.disabled = true;
+      messageDiv.textContent = '';
+      progressBar.style.width = '0';
 
-      if (!uploadUrl) {
-        document.getElementById('message').textContent = 'Failed to generate presigned URL.';
-        return;
-      }
+      try {
+        console.log('Generating presigned URL');
+        progressBar.style.width = '20%';
+        const { uploadUrl, fileName } = await fetch('https://new-video-compress-tool.onrender.com/generate-presigned-url', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            fileName: file.name,
+            fileType: file.type
+          })
+        }).then(response => response.json());
 
-      console.log('Uploading file to S3');
-      await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': file.type
-        },
-        body: file
-      }).then(response => {
-        console.log('File upload response:', response);
-      }).catch(error => {
-        console.error('Error uploading file to S3:', error);
-        document.getElementById('message').textContent = 'Failed to upload file to S3.';
-        return;
-      });
+        if (!uploadUrl) {
+          throw new Error('Failed to generate presigned URL.');
+        }
 
-      console.log('Requesting video compression');
-      const response = await fetch('https://new-video-compress-tool.onrender.com/compress', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ s3Key: fileName })
-      }).then(response => {
-        console.log('Compression response:', response);
-        return response.json();
-      }).catch(error => {
-        console.error('Error during compression:', error);
-        return {};
-      });
+        console.log('Uploading file to S3');
+        progressBar.style.width = '50%';
+        await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': file.type
+          },
+          body: file
+        });
 
-      if (response && response.downloadUrl) {
-        document.getElementById('message').innerHTML = `Video compressed successfully. <a href="${response.downloadUrl}" target="_blank">Download here</a>`;
-      } else {
-        document.getElementById('message').textContent = 'Failed to compress video.';
+        console.log('Requesting video compression');
+        progressBar.style.width = '70%';
+        const response = await fetch('https://new-video-compress-tool.onrender.com/compress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ s3Key: fileName })
+        }).then(response => response.json());
+
+        if (response && response.downloadUrl) {
+          progressBar.style.width = '100%';
+          messageDiv.innerHTML = `Video compressed successfully. <a href="${response.downloadUrl}" target="_blank">Download here</a>`;
+          videoPlayer.src = response.downloadUrl;
+          videoPlayer.style.display = 'block';
+        } else {
+          throw new Error('Failed to compress video.');
+        }
+      } catch (error) {
+        console.error(error);
+        messageDiv.textContent = error.message;
+      } finally {
+        compressButton.disabled = false;
       }
     }
   </script>
