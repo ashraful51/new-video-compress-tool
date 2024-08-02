@@ -80,7 +80,7 @@ app.post('/generate-presigned-url', async (req, res) => {
   }
 });
 
-app.post('/compress', async (req, res) => {
+app.post('/compress', upload.single('video'), async (req, res) => {
   const { s3Key } = req.body;
   const inputFileName = s3Key;
   const outputFileName = `compressed-${Date.now()}-${s3Key}`;
@@ -112,7 +112,7 @@ app.post('/compress', async (req, res) => {
           .size('640x360')
           .videoBitrate('500k')
           .audioBitrate('64k')
-          .preset('ultrafast')
+          .preset('superfast')
           .on('end', () => {
             console.log(`Video compressed to ${outputPath}`);
             resolve();
