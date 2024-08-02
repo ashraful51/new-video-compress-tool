@@ -69,7 +69,7 @@ app.post('/generate-presigned-url', async (req, res) => {
   }
 });
 
-app.post('/compress', upload.single('video'), async (req, res) => {
+app.post('/compress', async (req, res) => {
   const { s3Key } = req.body;
   const inputFileName = s3Key;
   const outputFileName = `compressed-${Date.now()}-${s3Key}`;
