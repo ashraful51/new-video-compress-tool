@@ -91,7 +91,8 @@ app.post('/compress', async (req, res) => {
           .setFfmpegPath(ffmpegPath)
           .output(outputPath)
           .videoCodec('libx264')
-          .size('80%') // Resize video to 80% of its original resolution
+          .videoBitrate('500k') // Lower bitrate for greater compression
+          .audioBitrate('64k') // Lower audio bitrate
           .on('end', () => {
             console.log(`Video compressed to ${outputPath}`);
             resolve();
