@@ -64,7 +64,6 @@ app.post('/compress', async (req, res) => {
   const outputPath = path.join('/tmp', outputFileName);
 
   try {
-    console.log(`Downloading ${inputFileName} from S3`);
     const downloadParams = {
       Bucket: process.env.AWS_BUCKET_NAME,
       Key: inputFileName,
@@ -76,30 +75,19 @@ app.post('/compress', async (req, res) => {
     Body.pipe(writeStream);
 
     Body.on('end', async () => {
-      console.log(`Written ${inputPath}`);
-
-      console.log(`Compressing video ${inputFileName}`);
       await new Promise((resolve, reject) => {
         ffmpeg(inputPath)
           .setFfmpegPath(ffmpegPath)
           .output(outputPath)
           .videoCodec('libx264')
           .size('50%')
-          .on('end', () => {
-            console.log(`Video compressed to ${outputPath}`);
-            resolve();
-          })
-          .on('error', (err) => {
-            console.error('Error during compression:', err);
-            reject(err);
-          })
+          .on('end', () => resolve())
+          .on('error', (err) => reject(err))
           .run();
       });
 
       const compressedBuffer = fs.readFileSync(outputPath);
-      console.log(`Read compressed file ${outputPath}`);
 
-      console.log(`Uploading compressed video ${outputFileName} to S3`);
       const compressedUploadParams = {
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: outputFileName,
@@ -107,13 +95,11 @@ app.post('/compress', async (req, res) => {
         ContentType: 'video/mp4',
       };
       await s3Client.send(new PutObjectCommand(compressedUploadParams));
-      console.log(`Uploaded ${outputFileName} to S3`);
 
       const downloadUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${outputFileName}`;
 
       fs.unlinkSync(inputPath);
       fs.unlinkSync(outputPath);
-      console.log(`Cleaned up temporary files`);
 
       res.json({ downloadUrl });
     });
