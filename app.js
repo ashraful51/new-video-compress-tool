@@ -39,6 +39,12 @@ app.use(cors());
 app.use(express.static('public'));
 app.use(express.json());
 
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage,
+  limits: { fileSize: 20 * 1024 * 1024 } // Set file size limit to 20MB
+});
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -62,7 +68,7 @@ app.post('/generate-presigned-url', async (req, res) => {
   }
 });
 
-app.post('/compress', async (req, res) => {
+app.post('/compress', upload.single('video'), async (req, res) => {
   const { s3Key } = req.body;
   const inputFileName = s3Key;
   const outputFileName = `compressed-${Date.now()}-${s3Key}`;
@@ -79,10 +85,10 @@ app.post('/compress', async (req, res) => {
 
     const downloadCommand = new GetObjectCommand(downloadParams);
     const { Body } = await s3Client.send(downloadCommand);
-    const writeStream = fs.createWriteStream(inputPath);
-    Body.pipe(writeStream);
 
-    Body.on('end', async () => {
+    // Stream input directly to file
+    const inputStream = Body.pipe(fs.createWriteStream(inputPath));
+    inputStream.on('finish', async () => {
       console.log(`Written ${inputPath}`);
 
       console.log(`Compressing video ${inputFileName}`);
