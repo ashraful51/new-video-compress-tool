@@ -41,11 +41,10 @@ app.use((req, res, next) => {
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
   
   // Intercept OPTIONS method
-  if ('OPTIONS' === req.method) {
-    res.sendStatus(200);
-  } else {
-    next();
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
   }
+  next();
 });
 
 app.use(express.static('public'));
@@ -80,7 +79,7 @@ app.post('/generate-presigned-url', async (req, res) => {
   }
 });
 
-app.post('/compress', upload.single('video'), async (req, res) => {
+app.post('/compress', async (req, res) => {
   const { s3Key } = req.body;
   const inputFileName = s3Key;
   const outputFileName = `compressed-${Date.now()}-${s3Key}`;
@@ -98,7 +97,6 @@ app.post('/compress', upload.single('video'), async (req, res) => {
     const downloadCommand = new GetObjectCommand(downloadParams);
     const { Body } = await s3Client.send(downloadCommand);
 
-    // Stream input directly to file
     const inputStream = Body.pipe(fs.createWriteStream(inputPath));
     inputStream.on('finish', async () => {
       console.log(`Written ${inputPath}`);
