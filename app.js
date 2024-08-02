@@ -110,7 +110,7 @@ app.post('/compress', async (req, res) => {
           .size('640x360')
           .videoBitrate('500k')
           .audioBitrate('64k')
-          .preset('superfast')
+          .preset('ultrafast') // Changed preset to 'ultrafast' for faster compression
           .on('end', () => {
             console.log(`Video compressed to ${outputPath}`);
             resolve();
@@ -141,19 +141,4 @@ app.post('/compress', async (req, res) => {
       fs.unlinkSync(outputPath);
       console.log(`Cleaned up temporary files`);
 
-      res.json({ downloadUrl });
-    });
-
-    Body.on('error', (err) => {
-      console.error('Error during download from S3:', err);
-      res.status(500).send('Error during download from S3');
-    });
-  } catch (error) {
-    console.error('Error compressing video:', error);
-    res.status(500).send('Error compressing video');
-  }
-});
-
-app.listen(port, () => {
-  console.log(`Server running at http://localhost:${port}`);
-});
+      res.json({ downloadUrl }
