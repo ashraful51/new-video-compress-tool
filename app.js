@@ -35,7 +35,8 @@ const s3Client = new S3Client({
   },
 });
 
-app.use(cors());
+// Use CORS middleware
+app.use(cors({ origin: 'https://www.ezomfy.com' }));
 app.use(express.static('public'));
 app.use(express.json());
 
