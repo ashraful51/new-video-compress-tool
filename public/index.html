@@ -20,6 +20,7 @@
         return;
       }
 
+      console.log('Generating presigned URL');
       const { uploadUrl, fileName } = await fetch('/generate-presigned-url', {
         method: 'POST',
         headers: {
@@ -29,27 +30,42 @@
           fileName: file.name,
           fileType: file.type
         })
-      }).then(response => response.json());
+      }).then(response => {
+        console.log('Presigned URL response:', response);
+        return response.json();
+      }).catch(error => {
+        console.error('Error generating presigned URL:', error);
+      });
 
+      console.log('Uploading file to S3');
       await fetch(uploadUrl, {
         method: 'PUT',
         headers: {
           'Content-Type': file.type
         },
         body: file
+      }).then(response => {
+        console.log('File upload response:', response);
+      }).catch(error => {
+        console.error('Error uploading file to S3:', error);
       });
 
+      console.log('Requesting video compression');
       const response = await fetch('/compress', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ s3Key: fileName })
+      }).then(response => {
+        console.log('Compression response:', response);
+        return response.json();
+      }).catch(error => {
+        console.error('Error during compression:', error);
       });
 
-      if (response.ok) {
-        const { downloadUrl } = await response.json();
-        document.getElementById('message').innerHTML = `Video compressed successfully. <a href="${downloadUrl}" target="_blank">Download here</a>`;
+      if (response && response.downloadUrl) {
+        document.getElementById('message').innerHTML = `Video compressed successfully. <a href="${response.downloadUrl}" target="_blank">Download here</a>`;
       } else {
         document.getElementById('message').textContent = 'Failed to compress video.';
       }
