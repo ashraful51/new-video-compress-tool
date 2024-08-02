@@ -4,78 +4,56 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Compressor</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 20px;
-    }
-    form {
-      margin-bottom: 20px;
-    }
-    #status {
-      margin-top: 20px;
-      color: red;
-    }
-    video {
-      max-width: 100%;
-      margin-top: 20px;
-    }
-    #downloadLink {
-      display: none;
-      margin-top: 20px;
-    }
-  </style>
 </head>
 <body>
   <h1>Video Compressor</h1>
-  <form id="uploadForm">
-    <input type="file" id="videoFile" name="video" accept="video/*" required>
-    <button type="submit">Compress Video</button>
-  </form>
-  <div id="status"></div>
-  <video id="videoPlayer" controls style="display:none;"></video>
-  <a id="downloadLink" href="#" download>Download Compressed Video</a>
-
+  <input type="file" id="videoInput" accept="video/*">
+  <button onclick="uploadAndCompressVideo()">Compress Video</button>
+  <div id="message"></div>
   <script>
-    document.getElementById('uploadForm').addEventListener('submit', async function (event) {
-      event.preventDefault();
-      const fileInput = document.getElementById('videoFile');
-      const statusDiv = document.getElementById('status');
-      const videoPlayer = document.getElementById('videoPlayer');
-      const downloadLink = document.getElementById('downloadLink');
+    async function uploadAndCompressVideo() {
+      const fileInput = document.getElementById('videoInput');
+      const file = fileInput.files[0];
 
-      if (fileInput.files.length === 0) {
-        statusDiv.textContent = 'Please select a video file.';
+      if (!file) {
+        alert('Please select a video file to upload.');
         return;
       }
 
-      const formData = new FormData();
-      formData.append('video', fileInput.files[0]);
+      const { uploadUrl } = await fetch('/generate-presigned-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          fileName: file.name,
+          fileType: file.type
+        })
+      }).then(response => response.json());
 
-      statusDiv.textContent = 'Uploading and compressing video...';
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type
+        },
+        body: file
+      });
 
-      try {
-        const response = await fetch('/compress', {
-          method: 'POST',
-          body: formData,
-        });
+      const response = await fetch('/compress', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ s3Key: file.name })
+      });
 
-        if (!response.ok) {
-          throw new Error('Failed to compress video.');
-        }
-
-        const result = await response.json();
-        statusDiv.textContent = 'Video compressed successfully!';
-
-        videoPlayer.src = result.downloadUrl;
-        videoPlayer.style.display = 'block';
-        downloadLink.href = result.downloadUrl;
-        downloadLink.style.display = 'block';
-      } catch (error) {
-        statusDiv.textContent = error.message;
+      if (response.ok) {
+        const { downloadUrl } = await response.json();
+        document.getElementById('message').innerHTML = `Video compressed successfully. <a href="${downloadUrl}" target="_blank">Download here</a>`;
+      } else {
+        document.getElementById('message').textContent = 'Failed to compress video.';
       }
-    });
+    }
   </script>
 </body>
 </html>
