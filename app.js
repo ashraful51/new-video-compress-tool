@@ -7,7 +7,6 @@ const path = require('path');
 const fs = require('fs');
 const { S3Client, PutObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
-const cors = require('cors');
 
 console.log('Resolved ffmpeg path:', ffmpegPath);
 
@@ -35,8 +34,20 @@ const s3Client = new S3Client({
   },
 });
 
-// Use CORS middleware
-app.use(cors({ origin: 'https://www.ezomfy.com' }));
+// Manually add CORS headers
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', 'https://www.ezomfy.com');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
+  
+  // Intercept OPTIONS method
+  if ('OPTIONS' === req.method) {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.static('public'));
 app.use(express.json());
 
