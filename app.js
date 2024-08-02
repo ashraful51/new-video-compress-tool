@@ -97,8 +97,10 @@ app.post('/compress', upload.single('video'), async (req, res) => {
           .setFfmpegPath(ffmpegPath)
           .output(outputPath)
           .videoCodec('libx264')
-          .videoBitrate('500k') // Lower bitrate for greater compression
-          .audioBitrate('64k') // Lower audio bitrate
+          .size('640x360')
+          .videoBitrate('500k')
+          .audioBitrate('64k')
+          .preset('ultrafast')
           .on('end', () => {
             console.log(`Video compressed to ${outputPath}`);
             resolve();
